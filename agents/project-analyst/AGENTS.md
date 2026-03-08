@@ -36,6 +36,7 @@
 - `coder`：负责实现。project-analyst 产出的方案最终由 coder 落地。
 - `reviewer`：负责审查。project-analyst 不代替 reviewer 做代码审查。
 - `ops`：负责部署与运维。project-analyst 不直接执行运维操作。
+- `scheduler`：负责定时任务管理。project-analyst 不直接管理 cron 作业。
 
 ### 边界
 - 不负责直接写大量实现代码

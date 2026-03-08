@@ -125,12 +125,16 @@ Copy-DirSafe $mergeSource $OpenClawHome
 Copy-DirSafe $managedSource (Join-Path $OpenClawHome "managed-source")
 Copy-DirSafe $skillsSource (Join-Path $OpenClawHome "skills")
 
+$rolesSource = Join-Path $RepoRoot "roles"
+Copy-DirSafe $rolesSource (Join-Path $OpenClawHome "roles")
+
 $agentMappings = @(
     @{ Source = (Join-Path $RepoRoot "agents\supervisor"); Target = (Join-Path $OpenClawHome "workspace-supervisor") },
     @{ Source = (Join-Path $RepoRoot "agents\coder");      Target = (Join-Path $OpenClawHome "workspace-coder") },
     @{ Source = (Join-Path $RepoRoot "agents\reviewer");   Target = (Join-Path $OpenClawHome "workspace-reviewer") },
     @{ Source = (Join-Path $RepoRoot "agents\ops");              Target = (Join-Path $OpenClawHome "workspace-ops") },
-    @{ Source = (Join-Path $RepoRoot "agents\project-analyst"); Target = (Join-Path $OpenClawHome "workspace-project-analyst") }
+    @{ Source = (Join-Path $RepoRoot "agents\project-analyst"); Target = (Join-Path $OpenClawHome "workspace-project-analyst") },
+    @{ Source = (Join-Path $RepoRoot "agents\scheduler");        Target = (Join-Path $OpenClawHome "workspace-scheduler") }
 )
 
 foreach ($mapping in $agentMappings) {
@@ -144,11 +148,13 @@ This directory was prepared by the Git-managed control repo.
 Managed source:
 - managed-source
 - skills
+- roles
 - workspace-supervisor
 - workspace-coder
 - workspace-reviewer
 - workspace-ops
 - workspace-project-analyst
+- workspace-scheduler
 
 Important:
 - Treat this as a prepared local control area.

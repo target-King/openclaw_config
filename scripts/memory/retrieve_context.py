@@ -89,7 +89,7 @@ def main() -> None:
     parser.add_argument("--dialog-id", required=True, help="Dialog identifier for session isolation.")
     parser.add_argument("--topic", default="", help="Topic name.")
     parser.add_argument("--keywords", default="", help="Comma separated keywords.")
-    parser.add_argument("--recent-limit", type=int, default=5, help="Recent L1 chunk limit.")
+    parser.add_argument("--recent-limit", type=int, default=3, help="Recent L1 chunk limit.")
     parser.add_argument("--summary-limit", type=int, default=2, help="L2 summary limit.")
     parser.add_argument("--fact-limit", type=int, default=5, help="L3 fact limit.")
     args = parser.parse_args()

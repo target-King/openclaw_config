@@ -30,7 +30,7 @@
 ## 项目结构
 
 控制仓库 `/wwwroot/openclaw_config/` 包含：
-- `agents/` — 多 Agent 角色定义（supervisor/coder/reviewer/ops/project-analyst）
+- `agents/` — 多 Agent 角色定义（supervisor/coder/reviewer/ops/project-analyst/scheduler）
 - `skills/` — 共享技能（memory-retrieve/memory-summarize/topic-router/repo-health/git-sync）
 - `managed-config/` — 托管配置（openclaw.json5/agents.json5/skills.json5/channels.json5）
 - `scripts/` — 系统脚本（sync/backup/doctor/install）+ 记忆脚本（Python）

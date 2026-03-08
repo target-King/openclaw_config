@@ -62,7 +62,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Compact old conversation chunks after summaries exist.")
     parser.add_argument("--db", default="data/memory.db", help="Path to SQLite database.")
     parser.add_argument("--dialog-id", default="", help="Dialog identifier. If empty, compact ALL dialogs (use with caution).")
-    parser.add_argument("--keep-recent", type=int, default=5, help="How many recent chunks to keep per dialog+topic.")
+    parser.add_argument("--keep-recent", type=int, default=3, help="How many recent chunks to keep per dialog+topic.")
     parser.add_argument(
         "--delete-summarized",
         action="store_true",

@@ -1,1 +1,20 @@
-# Sensitive files/nservers//n.env/n/n# Runtime data/ndata/*.db/ndata/*.sqlite/ndata/*.sqlite3/nsessions//ncredentials//nauth//ncache//nlogs//n/n# Python/n__pycache__//n*.pyc/n/n# OS/nnul/n
+# Sensitive files
+servers/
+.env
+
+# Runtime data
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+sessions/
+credentials/
+auth/
+cache/
+logs/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+nul

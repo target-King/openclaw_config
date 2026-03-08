@@ -22,6 +22,7 @@
 - `reviewer` 负责审查
 - `ops` 负责同步、部署、日志与诊断
 - `project-analyst` 负责项目讨论与可行性分析
+- `scheduler` 负责定时任务管理（cron 作业的创建、编辑、删除、查询、诊断）
 
 ## 当前仓库中的关注对象
 - `managed-config/`

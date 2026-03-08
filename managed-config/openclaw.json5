@@ -49,6 +49,14 @@
         "workspaceName": "workspace-project-analyst",
         "agentDirName": "project-analyst",
         "isDefault": false
+      },
+      {
+        "id": "scheduler",
+        "enabled": true,
+        "role": "定时任务管理 / cron 作业创建编辑删除诊断",
+        "workspaceName": "workspace-scheduler",
+        "agentDirName": "scheduler",
+        "isDefault": false
       }
     ]
   },
@@ -96,8 +104,8 @@
       "l3"
     ],
     "summarizeThreshold": {
-      "byTurns": 12,
-      "byApproxChars": 12000
+      "byTurns": 8,
+      "byApproxChars": 8000
     },
     "longTermWritePolicy": {
       "storeStablePreferences": true,
@@ -120,6 +128,7 @@
       "deployment-sync",
       "project-conventions",
       "project-analysis",
+      "cron-scheduling",
       "general"
     ],
     "fallbackToGeneral": true
@@ -166,7 +175,8 @@
     "scriptsDir": "scripts",
     "templatesDir": "templates",
     "memorySpecDir": "memory-spec",
-    "dataDir": "data"
+    "dataDir": "data",
+    "rolesDir": "roles"
   },
   "sync": {
     "enabled": true,

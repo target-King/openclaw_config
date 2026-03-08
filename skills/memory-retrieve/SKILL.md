@@ -33,6 +33,7 @@
 - 不返回敏感信息
 - L1/L2 检索时按 dialogId 过滤，不跨 dialog 取数据
 - L3 检索不过滤 dialogId，全局共享
+- 切换角色模式时，通过读取 `roles/<role>.md` 加载该角色详细行为规范
 
 ## 配套脚本
 - `scripts/memory/retrieve_context.py --dialog-id <id> --topic <topic>`

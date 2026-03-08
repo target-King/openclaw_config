@@ -71,7 +71,8 @@
           "coder",
           "reviewer",
           "ops",
-          "project-analyst"
+          "project-analyst",
+          "scheduler"
         ],
         "acceptsDirectUserTasks": true,
         "requiresPreRouting": false
@@ -378,6 +379,72 @@
         "user": "agents/project-analyst/USER.md",
         "tools": "agents/project-analyst/TOOLS.md"
       }
+    },
+    {
+      "id": "scheduler",
+      "enabled": true,
+      "displayName": "Scheduler",
+      "role": "定时任务代理",
+      "summary": "负责 OpenClaw cron 作业的全生命周期管理：创建、编辑、删除、查询、诊断、手动触发",
+      "priority": 72,
+      "isDefault": false,
+      "workspaceName": "workspace-scheduler",
+      "agentDirName": "scheduler",
+      "responsibilities": [
+        "创建定时任务（选择 schedule type / session mode / delivery）",
+        "编辑已有定时任务",
+        "删除定时任务（需确认）",
+        "查询 cron job 列表与运行历史",
+        "诊断定时任务执行问题",
+        "手动触发定时任务"
+      ],
+      "routing": {
+        "canDelegateTo": [],
+        "acceptsDirectUserTasks": false,
+        "preferredEntry": "via-supervisor"
+      },
+      "memoryPolicy": {
+        "enabled": true,
+        "primaryLayers": [
+          "l1",
+          "l2",
+          "l3"
+        ],
+        "retrievalOrder": [
+          "l1",
+          "l2",
+          "l3"
+        ],
+        "readFocus": [
+          "当前 cron 任务上下文",
+          "用户常用调度模式",
+          "已有 job 列表状态",
+          "时区和渠道偏好"
+        ],
+        "writePolicy": {
+          "canWriteTopicSummary": true,
+          "canWriteLongTermFacts": false,
+          "writeBackSchedulePatterns": true,
+          "avoidWritingDeliverySecrets": true
+        },
+        "escalationRules": [
+          "执行前先确认 job 列表现状",
+          "删除操作必须先展示详情再确认",
+          "诊断发现环境问题时上报 supervisor 转 ops"
+        ]
+      },
+      "constraints": {
+        "preferSafeOperations": true,
+        "requireDeleteConfirmation": true,
+        "alwaysVerifyAfterMutation": true,
+        "alwaysSpecifyTimezone": true
+      },
+      "promptFiles": {
+        "agents": "agents/scheduler/AGENTS.md",
+        "soul": "agents/scheduler/SOUL.md",
+        "user": "agents/scheduler/USER.md",
+        "tools": "agents/scheduler/TOOLS.md"
+      }
     }
   ],
   "routingRules": {
@@ -418,6 +485,10 @@
       {
         "topic": "project-analysis",
         "preferredAgent": "project-analyst"
+      },
+      {
+        "topic": "cron-scheduling",
+        "preferredAgent": "scheduler"
       }
     ],
     "byTaskType": [
@@ -440,6 +511,10 @@
       {
         "taskType": "analysis",
         "preferredAgent": "project-analyst"
+      },
+      {
+        "taskType": "scheduling",
+        "preferredAgent": "scheduler"
       }
     ],
     "fallbackAgent": "supervisor"
