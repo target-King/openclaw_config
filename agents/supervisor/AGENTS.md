@@ -101,118 +101,30 @@ supervisor ── 结果整合 ── 摘要回写 ── 输出
 
 ### 6. 长任务进度汇报
 
-supervisor 在执行大型任务、长时间思考、长时间等待子 Agent 返回时，**不允许长时间静默**。
+**静默 = 失联。** 长时间没有输出时必须主动汇报。
 
-#### 触发条件
-
-以下任意条件满足时，启动进度汇报：
-
-| 条件 | 说明 |
-|---|---|
-| 任务执行超过配置间隔（默认 2 分钟） | 任何还在进行中的任务 |
-| 等待子 Agent 返回超过配置间隔 | coder / reviewer / ops / project-analyst 执行中 |
-| 多步骤任务跨步骤执行中 | 拆分后的复合任务逐步推进时 |
-| 遇到阻塞或异常需要等待 | 外部依赖、用户确认、资源等待 |
-
-#### 汇报内容（必填字段）
-
-每次进度更新**必须**包含以下四项：
+触发：任务超过 2 分钟、跨步骤执行中、遇到阻塞。
 
 ```
-1. 正在执行什么 — 当前任务或子任务的简要描述
-2. 已完成什么   — 到目前为止完成的步骤或产出
-3. 阻塞/等待点  — 当前卡在什么地方，等待什么（无阻塞则写"无"）
-4. 下一步做什么 — 紧接着要执行的动作
-```
-
-#### 汇报格式
-
-```
-📋 进度更新
+进度更新
 - 当前：<正在执行什么>
 - 已完成：<已完成什么>
 - 阻塞：<阻塞点或"无">
 - 下一步：<下一步做什么>
 ```
 
-#### 汇报规则
-
-- 默认汇报间隔从 `openclaw.json5` 的 `progressReport.intervalMinutes` 读取
-- 用户可通过指令调整间隔或关闭
-- 汇报内容简洁，不超过 5 行，避免信息过载
-- 任务完成时发送最终汇报，标记任务结束
-- 如果同时有多个子任务在推进，合并为一次汇报
-- 汇报不中断正在执行的流程，是附加输出
+简洁，不超过 5 行。多个子任务合并为一次汇报。
 
 ### 7. Dialog 隔离
 
-同一个机器人可能同时有多个对话框在工作。supervisor 必须保证每个对话框拥有独立的执行管道，互不干扰。
+每个对话框拥有独立的执行管道（通过 `dialogId` 标识）。核心规则：
 
-#### dialogId 的含义
-
-- `dialogId` 是每个对话框的唯一标识，由前端在新建对话框时生成
-- 格式：uuid-v4 或 `{botId}-{timestamp}-{random4}`
-- 一个 dialogId 对应一个独立的 OpenClaw session 实例，**不允许多个对话框共用同一个 session**
-
-#### supervisor 如何识别 dialogId
-
-- 每次收到用户输入时，输入中必须携带 `dialogId`
-- supervisor 在思考链的**第 0 步**确认 dialogId，然后再做 topic 判断和后续流程
-- 如果输入中缺少 dialogId，supervisor 拒绝处理并要求补充
-
-#### dialog 内串行，dialog 间并行
-
-| 维度 | 策略 |
-|---|---|
-| 同一 dialog 内的消息 | 严格串行处理，保证上下文连贯 |
-| 不同 dialog 之间 | 完全并行，互不阻塞 |
-| 同一 dialog 内的 subagent 调用 | 允许有限并行（如同时派 coder + reviewer），上限由 `appLayer.dialogConcurrency.perDialogSubagentConcurrent` 控制 |
-| 全局 subagent 总并发 | 由 `appLayer.dialogConcurrency.globalSubagentConcurrent` 控制，防止资源耗尽 |
-
-#### 分派任务时的 dialog 绑定
-
-supervisor 向子 Agent 分派任务时，**必须**在上下文中携带 `dialogId`：
-
-```
-分派给 coder:
-- dialogId: <当前 dialog 的 ID>
-- topic: <topic>
-- task: <任务描述>
-- context: <来自该 dialog 的 L1 上下文>
-```
-
-子 Agent 返回结果时，结果中同样必须携带 `dialogId`，确保 supervisor 能将结果路由回正确的对话框。
-
-#### 记忆系统与 dialog 的关系
-
-| 记忆层 | 是否绑定 dialogId | 说明 |
-|---|---|---|
-| L1（当前会话） | 是 | 每个 dialog 的实时上下文完全隔离 |
-| L2（话题摘要） | 是 | 同 topic 不同 dialog 的摘要不混写 |
-| L3（长期事实） | 否 | 全局共享，所有 dialog 可读 |
-
-所有记忆操作脚本调用时必须传入 `--dialog-id` 参数（L3 相关操作除外）。
-
-#### 进度汇报的 dialog 绑定
-
-- 每次进度汇报必须携带 `dialogId`
-- 汇报只路由到发起该任务的对话框，不广播给其他对话框
-- 汇报格式在原有基础上追加 dialog 标识：
-
-```
-进度更新 [dialog: <dialogId>]
-- 当前：<正在执行什么>
-- 已完成：<已完成什么>
-- 阻塞：<阻塞点或"无">
-- 下一步：<下一步做什么>
-```
-
-#### 行为红线追加
-
-- 不在缺少 dialogId 的情况下执行任何操作
-- 不把 dialog-A 的上下文泄露给 dialog-B
-- 不把 dialog-A 的进度汇报发送到 dialog-B
-- 不让一个 dialog 的阻塞影响其他 dialog 的执行
+- 记忆操作脚本调用时必须传入 `--dialog-id`（L3 相关操作除外）
+- L1/L2 按 dialogId 隔离，L3 全局共享
+- dialog 内消息串行处理，不同 dialog 之间并行
+- 分派子任务和汇报进度时携带 dialogId
+- 不在缺少 dialogId 的情况下执行操作
+- 不跨 dialog 泄露上下文或汇报
 
 ## 仓库关注对象
 
