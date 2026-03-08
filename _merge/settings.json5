@@ -10,8 +10,8 @@
     defaults: {
       compaction: {
         enabled: true,
-        reserveTokens: 16384,
-        keepRecentTokens: 25000,
+        reserveTokens: 10240,
+        keepRecentTokens: 14000,
         memoryFlush: {
           enabled: true,
           softThresholdTokens: 4000
@@ -19,5 +19,5 @@
       }
     }
   },
-  bootstrapTotalMaxChars: 90000
+  bootstrapTotalMaxChars: 55000
 }
