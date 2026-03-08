@@ -56,7 +56,7 @@ for file in "${required_files[@]}"; do
   fi
 done
 
-for agent in supervisor coder reviewer ops; do
+for agent in supervisor coder reviewer ops project-analyst; do
   for file_name in AGENTS.md SOUL.md USER.md TOOLS.md; do
     full="agents/$agent/$file_name"
     if [[ ! -e "$REPO_ROOT/$full" ]]; then

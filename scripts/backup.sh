@@ -13,7 +13,7 @@ backup_root="$OPENCLAW_HOME_DIR/backups/$timestamp"
 ensure_dir "$backup_root"
 
 copied=false
-for name in managed-source skills workspace-supervisor workspace-coder workspace-reviewer workspace-ops; do
+for name in managed-source skills workspace-supervisor workspace-coder workspace-reviewer workspace-ops workspace-project-analyst; do
   src="$OPENCLAW_HOME_DIR/$name"
   if [[ -e "$src" ]]; then
     dst="$backup_root/$name"

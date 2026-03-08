@@ -42,7 +42,8 @@ $targets = @(
     "workspace-supervisor",
     "workspace-coder",
     "workspace-reviewer",
-    "workspace-ops"
+    "workspace-ops",
+    "workspace-project-analyst"
 )
 
 $copied = $false
