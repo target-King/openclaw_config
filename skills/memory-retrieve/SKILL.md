@@ -79,6 +79,7 @@
 - 同一 dialog+topic 下 chunk 超过 5 条（> 2 轮）时自动触发
 - 先 summarize（生成 L2 摘要），再 compact（删除旧 chunk）
 - compact 后只保留最近 4 条（2 轮完整对话）
+- 生成摘要时自动裁剪旧版本，每个 dialog+topic 最多保留 3 个 summary version
 - 无需手动干预，写入即压缩
 
 ## 摘要生成（summarize_topic）
@@ -91,12 +92,17 @@
 - 按 dialog+topic 分组统计 chunk 数量和总字符数
 - 超过 10 条的分组标记 [!] 告警
 - 全局 L1 总字符数超过 50000 时告警
+- L2 摘要版本堆积超过 5 个时告警
+- L3 活跃 fact 超过 50 条时 [warn]，超过 100 条时 [critical] 并按 category 审计
+- 检测超过 7 天无活跃的 stale dialog，提示运行过期清理
 
 ## 配套脚本
 - `scripts/memory/topic_classifier.py` — topic 自动分类器
 - `scripts/memory/ingest_chat.py --dialog-id <id> --auto-topic --content <text>` — 写入（自动分类+自动压缩）
 - `scripts/memory/retrieve_context.py --dialog-id <id> --query <text>` — 检索（自动分类 topic）
 - `scripts/memory/compact_memory.py --auto --dialog-id <id>` — 手动批量压缩
+- `scripts/memory/expire_dialogs.py --dry-run` — 扫描过期 dialog（仅报告）
+- `scripts/memory/expire_dialogs.py --execute` — 执行过期清理（真正删除）
 - `scripts/memory/check_db.py --db <path>` — 监控
 
 ## 未来增强

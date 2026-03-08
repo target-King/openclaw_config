@@ -23,3 +23,24 @@
 - 已过期调试日志
 - 临时试错指令
 - 敏感密钥
+
+## Dialog 过期策略
+
+- L1 chunks：`dialog_id` 连续 7 天无新写入 → 自动过期候选
+- L2 summaries：额外宽限 14 天（可配置），到期后才删除
+- L3 facts：全局共享，不受 dialog 过期影响
+- 默认 dry-run，需 `--execute` 确认后才真正删除
+- 脚本：`scripts/memory/expire_dialogs.py`
+
+## L2 版本裁剪策略
+
+- 每个 `(dialog_id, topic)` 最多保留 3 个最新 summary version
+- 生成新摘要时自动裁剪旧版本（同一事务内完成）
+- 旧摘要被替代后无检索价值，自动清理减少数据库膨胀
+
+## L3 容量管理
+
+- 活跃 fact 超过 50 条时 `check_db.py` 打印 `[warn]` 告警
+- 超过 100 条时打印 `[critical]` 并按 category 分组审计
+- 建议定期审查 `confidence < 60` 的 fact
+- 失效的 fact 应及时标记 `status='archived'`

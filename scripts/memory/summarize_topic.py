@@ -9,6 +9,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 MAX_SUMMARY_LINES = 15         # 摘要最大行数
 MAX_LINE_CHARS = 200           # 摘要中每条的字符上限
+MAX_SUMMARY_VERSIONS = 3       # 每个 dialog+topic 最多保留的 summary 版本数
 ROLES_PRIORITY = ("assistant", "user")  # 优先保留的角色（结论 > 提问 > 工具输出）
 
 
@@ -76,7 +77,37 @@ def build_summary(rows: list[tuple], topic: str) -> str:
     return "\n".join(lines)
 
 
-def summarize(db_path: Path, dialog_id: str, topic: str, limit: int) -> None:
+def _prune_old_versions(conn: sqlite3.Connection, dialog_id: str, topic: str, keep_n: int) -> int:
+    """Delete old summary versions, keeping only the *keep_n* most recent."""
+    if keep_n <= 0:
+        return 0
+    ids_to_keep = conn.execute(
+        """
+        SELECT id FROM topic_summaries
+        WHERE dialog_id = ? AND topic = ?
+        ORDER BY summary_version DESC
+        LIMIT ?
+        """,
+        (dialog_id, topic, keep_n),
+    ).fetchall()
+    if not ids_to_keep:
+        return 0
+    keep_set = {row[0] for row in ids_to_keep}
+    all_ids = conn.execute(
+        "SELECT id FROM topic_summaries WHERE dialog_id = ? AND topic = ?",
+        (dialog_id, topic),
+    ).fetchall()
+    delete_ids = [row[0] for row in all_ids if row[0] not in keep_set]
+    if not delete_ids:
+        return 0
+    conn.executemany(
+        "DELETE FROM topic_summaries WHERE id = ?",
+        [(x,) for x in delete_ids],
+    )
+    return len(delete_ids)
+
+
+def summarize(db_path: Path, dialog_id: str, topic: str, limit: int, *, keep_versions: int = MAX_SUMMARY_VERSIONS) -> None:
     ensure_db_exists(db_path)
     with sqlite3.connect(db_path) as conn:
         rows = conn.execute(
@@ -107,9 +138,14 @@ def summarize(db_path: Path, dialog_id: str, topic: str, limit: int) -> None:
             """,
             (dialog_id, topic, summary_text, latest + 1, len(rows)),
         )
+
+        pruned = _prune_old_versions(conn, dialog_id, topic, keep_versions)
         conn.commit()
 
-    print(f"[ok] summary created (dialog={dialog_id}, topic={topic}, version={latest + 1}, source_chunks={len(rows)})")
+    msg = f"[ok] summary created (dialog={dialog_id}, topic={topic}, version={latest + 1}, source_chunks={len(rows)})"
+    if pruned:
+        msg += f", pruned {pruned} old version(s)"
+    print(msg)
 
 
 def main() -> None:
@@ -118,9 +154,10 @@ def main() -> None:
     parser.add_argument("--dialog-id", required=True, help="Dialog identifier for session isolation.")
     parser.add_argument("--topic", required=True, help="Topic name.")
     parser.add_argument("--limit", type=int, default=15, help="How many recent chunks to include.")
+    parser.add_argument("--keep-versions", type=int, default=MAX_SUMMARY_VERSIONS, help="Max summary versions to keep per dialog+topic.")
     args = parser.parse_args()
 
-    summarize(Path(args.db), args.dialog_id, args.topic, args.limit)
+    summarize(Path(args.db), args.dialog_id, args.topic, args.limit, keep_versions=args.keep_versions)
 
 
 if __name__ == "__main__":

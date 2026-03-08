@@ -54,6 +54,10 @@ SCHEMA = [
     CREATE UNIQUE INDEX IF NOT EXISTS idx_fact_category_key
     ON long_term_facts(category, key)
     """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_conversation_dialog_created
+    ON conversation_chunks(dialog_id, created_at)
+    """,
 ]
 
 
