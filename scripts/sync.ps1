@@ -149,6 +149,7 @@ Managed source:
 - managed-source
 - skills
 - roles
+- settings.json5 (lossless-claw context engine config)
 - workspace-supervisor
 - workspace-coder
 - workspace-reviewer

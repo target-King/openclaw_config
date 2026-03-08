@@ -104,8 +104,8 @@
       "l3"
     ],
     "summarizeThreshold": {
-      "byTurns": 8,
-      "byApproxChars": 8000
+      "byTurns": 5,
+      "byApproxChars": 5000
     },
     "longTermWritePolicy": {
       "storeStablePreferences": true,
@@ -271,6 +271,16 @@
       "bindToDialog": true,
       "broadcastToAll": false,
       "notes": "进度汇报只路由到发起任务的对话框，不广播"
+    },
+
+    "contextEngineIntegration": {
+      "plugin": "lossless-claw",
+      "settingsSource": "_merge/settings.json5 → ~/.openclaw/settings.json5",
+      "notes": [
+        "lossless-claw 在 runtime 层管理 token 级上下文压缩",
+        "三层记忆在应用层管理语义级归档，两者独立运行互不干扰",
+        "降低 summarizeThreshold 让应用层更早生成摘要，减轻 lossless-claw 压缩负担"
+      ]
     }
   }
 }

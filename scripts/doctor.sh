@@ -22,6 +22,7 @@ required_files=(
   bootstrap-openclaw.bat
   bootstrap-openclaw.ps1
   bootstrap-openclaw.sh
+  _merge/settings.json5
   managed-config/openclaw.json5
   managed-config/agents.json5
   managed-config/skills.json5
@@ -56,7 +57,7 @@ for file in "${required_files[@]}"; do
   fi
 done
 
-for agent in supervisor coder reviewer ops project-analyst; do
+for agent in supervisor coder reviewer ops project-analyst scheduler; do
   for file_name in AGENTS.md SOUL.md USER.md TOOLS.md; do
     full="agents/$agent/$file_name"
     if [[ ! -e "$REPO_ROOT/$full" ]]; then
@@ -81,3 +82,12 @@ if (( ${#missing[@]} > 0 )); then
 fi
 
 echo "[doctor] Repo structure looks good."
+
+# ── Runtime plugin check (optional) ──
+if command -v openclaw >/dev/null 2>&1; then
+  if openclaw plugins list 2>/dev/null | grep -q "lossless-claw"; then
+    echo "[doctor][runtime] lossless-claw plugin is installed."
+  else
+    echo "[warn][runtime] lossless-claw plugin not found. Run: openclaw plugins install @martian-engineering/lossless-claw" >&2
+  fi
+fi

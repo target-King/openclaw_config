@@ -29,6 +29,14 @@ for name in managed-source skills workspace-supervisor workspace-coder workspace
   fi
 done
 
+# 备份 settings.json5
+settings_file="$OPENCLAW_HOME_DIR/settings.json5"
+if [[ -f "$settings_file" ]]; then
+  cp -a "$settings_file" "$backup_root/settings.json5"
+  echo "[backup] $settings_file -> $backup_root/settings.json5"
+  copied=true
+fi
+
 if [[ "$copied" == false ]]; then
   echo "[backup] Nothing to back up yet."
 fi

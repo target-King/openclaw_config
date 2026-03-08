@@ -57,6 +57,14 @@ foreach ($name in $targets) {
     }
 }
 
+# 备份 settings.json5
+$settingsFile = Join-Path $OpenClawHome "settings.json5"
+if (Test-Path $settingsFile) {
+    Copy-Item $settingsFile (Join-Path $backupRoot "settings.json5") -Force
+    Write-Host "[backup] $settingsFile -> $backupRoot\settings.json5"
+    $copied = $true
+}
+
 if (-not $copied) {
     Write-Host "[backup] Nothing to back up yet."
 }

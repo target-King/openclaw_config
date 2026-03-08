@@ -23,6 +23,7 @@ $requiredFiles = @(
     "bootstrap-openclaw.bat",
     "bootstrap-openclaw.ps1",
     "bootstrap-openclaw.sh",
+    "_merge\settings.json5",
     "managed-config\openclaw.json5",
     "managed-config\agents.json5",
     "managed-config\skills.json5",
@@ -59,7 +60,7 @@ foreach ($file in $requiredFiles) {
     }
 }
 
-$agentNames = @("supervisor", "coder", "reviewer", "ops")
+$agentNames = @("supervisor", "coder", "reviewer", "ops", "project-analyst", "scheduler")
 foreach ($agent in $agentNames) {
     foreach ($fileName in @("AGENTS.md", "SOUL.md", "USER.md", "TOOLS.md")) {
         $full = Join-Path $RepoRoot ("agents\" + $agent + "\" + $fileName)
@@ -82,3 +83,14 @@ if ($missing.Count -gt 0) {
 }
 
 Write-Host "[doctor] Repo structure looks good."
+
+# ── Runtime plugin check (optional) ──
+$openclawCmd = Get-Command openclaw -ErrorAction SilentlyContinue
+if ($null -ne $openclawCmd) {
+    $pluginList = openclaw plugins list 2>&1
+    if ($pluginList -match "lossless-claw") {
+        Write-Host "[doctor][runtime] lossless-claw plugin is installed."
+    } else {
+        Write-Warning "[doctor][runtime] lossless-claw plugin not found. Run: openclaw plugins install @martian-engineering/lossless-claw"
+    }
+}

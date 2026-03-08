@@ -51,7 +51,22 @@ foreach ($dir in $dirs) {
 $openclawCmd = Get-Command openclaw -ErrorAction SilentlyContinue
 if ($null -ne $openclawCmd) {
     Write-Host "[install] OpenClaw command detected: $($openclawCmd.Source)"
+    # 检查 lossless-claw 插件
+    $pluginList = openclaw plugins list 2>&1
+    if ($pluginList -match "lossless-claw") {
+        Write-Host "[install] lossless-claw plugin already installed."
+    } else {
+        Write-Host "[install] Installing lossless-claw plugin..."
+        try {
+            openclaw plugins install @martian-engineering/lossless-claw 2>&1 | ForEach-Object { Write-Host "  $_" }
+            Write-Host "[install] lossless-claw plugin installed successfully."
+        } catch {
+            Write-Warning "[install] Failed to install lossless-claw plugin: $_"
+            Write-Warning "[install] You can install it manually: openclaw plugins install @martian-engineering/lossless-claw"
+        }
+    }
 }
 else {
-    Write-Host "[install] OpenClaw command not detected. This is okay. Directory prep only."
+    Write-Host "[install] OpenClaw command not detected. Directory prep only."
+    Write-Host "[install] After installing OpenClaw, run: openclaw plugins install @martian-engineering/lossless-claw"
 }

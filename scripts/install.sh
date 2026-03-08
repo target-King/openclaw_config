@@ -23,6 +23,19 @@ done
 
 if command -v openclaw >/dev/null 2>&1; then
   echo "[install] OpenClaw command detected: $(command -v openclaw)"
+  # 检查 lossless-claw 插件
+  if openclaw plugins list 2>/dev/null | grep -q "lossless-claw"; then
+    echo "[install] lossless-claw plugin already installed."
+  else
+    echo "[install] Installing lossless-claw plugin..."
+    if openclaw plugins install @martian-engineering/lossless-claw 2>&1 | sed 's/^/  /'; then
+      echo "[install] lossless-claw plugin installed successfully."
+    else
+      echo "[warn] Failed to install lossless-claw plugin." >&2
+      echo "[warn] Install manually: openclaw plugins install @martian-engineering/lossless-claw" >&2
+    fi
+  fi
 else
-  echo "[install] OpenClaw command not detected. This is okay. Directory prep only."
+  echo "[install] OpenClaw command not detected. Directory prep only."
+  echo "[install] After installing OpenClaw, run: openclaw plugins install @martian-engineering/lossless-claw"
 fi

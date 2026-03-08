@@ -103,6 +103,7 @@ This directory was prepared by the Git-managed control repo.
 Managed source:
 - managed-source
 - skills
+- settings.json5 (lossless-claw context engine config)
 - workspace-supervisor
 - workspace-coder
 - workspace-reviewer

@@ -1,0 +1,23 @@
+// Managed by openclaw-config repo — do not edit directly on target machine.
+// Changes here are synced via scripts/sync.ps1 (or sync.sh).
+{
+  plugins: {
+    slots: {
+      contextEngine: "lossless-claw"
+    }
+  },
+  agents: {
+    defaults: {
+      compaction: {
+        enabled: true,
+        reserveTokens: 16384,
+        keepRecentTokens: 25000,
+        memoryFlush: {
+          enabled: true,
+          softThresholdTokens: 4000
+        }
+      }
+    }
+  },
+  bootstrapTotalMaxChars: 90000
+}
