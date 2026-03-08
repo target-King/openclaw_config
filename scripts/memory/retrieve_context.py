@@ -5,6 +5,11 @@ import sqlite3
 from pathlib import Path
 from typing import Iterable
 
+# ---------------------------------------------------------------------------
+# Tunable limits
+# ---------------------------------------------------------------------------
+CONTEXT_WARN_CHARS = 3000      # 总 context 字符数告警阈值
+
 
 def ensure_db_exists(db_path: Path) -> None:
     if not db_path.exists():
@@ -16,7 +21,13 @@ def query_like_terms(keywords: str) -> list[str]:
     return [f"%{t}%" for t in terms]
 
 
-def retrieve_recent_chunks(conn: sqlite3.Connection, dialog_id: str, topic: str, limit: int) -> list[tuple]:
+# ---------------------------------------------------------------------------
+# Layer retrievers
+# ---------------------------------------------------------------------------
+
+def retrieve_recent_chunks(
+    conn: sqlite3.Connection, dialog_id: str, topic: str, limit: int
+) -> list[tuple]:
     return conn.execute(
         """
         SELECT id, role, content, created_at
@@ -73,43 +84,84 @@ def retrieve_facts(conn: sqlite3.Connection, keywords: str, limit: int) -> list[
     return conn.execute(sql, params).fetchall()
 
 
-def print_section(title: str, rows: Iterable[tuple]) -> None:
-    print(f"\n===== {title} =====")
-    found = False
-    for row in rows:
-        found = True
-        print(row)
-    if not found:
-        print("(empty)")
+# ---------------------------------------------------------------------------
+# Output
+# ---------------------------------------------------------------------------
 
+def _rows_char_size(rows: Iterable[tuple]) -> int:
+    return sum(len(str(r)) for r in rows)
+
+
+def print_section(title: str, rows: list[tuple]) -> int:
+    """Print a section and return total character count."""
+    print(f"\n===== {title} =====")
+    if not rows:
+        print("(empty)")
+        return 0
+    for row in rows:
+        print(row)
+    return _rows_char_size(rows)
+
+
+# ---------------------------------------------------------------------------
+# Main — implements short-circuit retrieval (L1 → L2 → L3)
+# ---------------------------------------------------------------------------
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Retrieve memory context from SQLite.")
     parser.add_argument("--db", default="data/memory.db", help="Path to SQLite database.")
     parser.add_argument("--dialog-id", required=True, help="Dialog identifier for session isolation.")
-    parser.add_argument("--topic", default="", help="Topic name.")
+    parser.add_argument("--topic", default="", help="Topic name. If empty and --auto-topic is set, auto-classify from --query.")
+    parser.add_argument("--query", default="", help="The current user query (used for auto-topic classification).")
     parser.add_argument("--keywords", default="", help="Comma separated keywords.")
-    parser.add_argument("--recent-limit", type=int, default=3, help="Recent L1 chunk limit.")
-    parser.add_argument("--summary-limit", type=int, default=2, help="L2 summary limit.")
-    parser.add_argument("--fact-limit", type=int, default=5, help="L3 fact limit.")
+    parser.add_argument("--recent-limit", type=int, default=4, help="Recent L1 chunk limit (default 4 = 2 rounds).")
+    parser.add_argument("--summary-limit", type=int, default=1, help="L2 summary limit.")
+    parser.add_argument("--fact-limit", type=int, default=3, help="L3 fact limit.")
+    parser.add_argument("--auto-topic", action="store_true", help="Auto-classify topic from --query when --topic is empty.")
     args = parser.parse_args()
 
     db_path = Path(args.db)
     ensure_db_exists(db_path)
 
-    with sqlite3.connect(db_path) as conn:
-        if args.topic:
-            recent = retrieve_recent_chunks(conn, args.dialog_id, args.topic, args.recent_limit)
-            summary = retrieve_summary(conn, args.dialog_id, args.topic, args.summary_limit)
-        else:
-            recent = []
-            summary = []
-        # L3 facts are global — no dialog_id filter
-        facts = retrieve_facts(conn, args.keywords, args.fact_limit)
+    # --- Resolve topic ------------------------------------------------------
+    topic = args.topic
+    if not topic and args.auto_topic:
+        from topic_classifier import classify
+        topic = classify(args.query or args.keywords)
+        print(f"[auto-topic] classified as: {topic}")
+    elif not topic and args.query:
+        from topic_classifier import classify
+        topic = classify(args.query)
+        print(f"[auto-topic] classified as: {topic}")
 
-    print_section("L1 Recent Chunks", recent)
-    print_section("L2 Topic Summaries", summary)
-    print_section("L3 Long-term Facts", facts)
+    total_chars = 0
+    recent: list[tuple] = []
+    summary: list[tuple] = []
+    facts: list[tuple] = []
+
+    with sqlite3.connect(db_path) as conn:
+        if topic:
+            # --- Short-circuit: if L2 summary exists, reduce L1 to 1 --------
+            summary = retrieve_summary(conn, args.dialog_id, topic, args.summary_limit)
+            if summary:
+                recent = retrieve_recent_chunks(conn, args.dialog_id, topic, min(args.recent_limit, 1))
+            else:
+                recent = retrieve_recent_chunks(conn, args.dialog_id, topic, args.recent_limit)
+
+        # L3 facts are global — no dialog_id filter
+        # Only query L3 when L1+L2 are insufficient or keywords explicitly provided
+        if args.keywords or (not recent and not summary):
+            facts = retrieve_facts(conn, args.keywords, args.fact_limit)
+
+    total_chars += print_section("L1 Recent Chunks", recent)
+    total_chars += print_section("L2 Topic Summaries", summary)
+    total_chars += print_section("L3 Long-term Facts", facts)
+
+    # Context size warning
+    if total_chars > CONTEXT_WARN_CHARS:
+        print(f"\n[warn] total context size = {total_chars} chars (threshold {CONTEXT_WARN_CHARS}), consider compacting")
+    else:
+        print(f"\n[info] total context size = {total_chars} chars")
 
 
 if __name__ == "__main__":
