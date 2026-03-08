@@ -1,0 +1,56 @@
+{
+  "meta": {
+    "configName": "skills",
+    "version": "0.2.0",
+    "description": "Shared skills managed by this control repo"
+  },
+  "defaults": {
+    "enabled": true,
+    "watch": true,
+    "location": "skills",
+    "enforceSkillMd": true
+  },
+  "skills": [
+    {
+      "id": "memory-retrieve",
+      "enabled": true,
+      "category": "memory",
+      "summary": "按三层记忆顺序检索上下文",
+      "entry": "skills/memory-retrieve/SKILL.md"
+    },
+    {
+      "id": "memory-summarize",
+      "enabled": true,
+      "category": "memory",
+      "summary": "把长对话压缩为话题摘要",
+      "entry": "skills/memory-summarize/SKILL.md"
+    },
+    {
+      "id": "topic-router",
+      "enabled": true,
+      "category": "routing",
+      "summary": "识别话题并路由到正确主题",
+      "entry": "skills/topic-router/SKILL.md"
+    },
+    {
+      "id": "repo-health",
+      "enabled": true,
+      "category": "repo",
+      "summary": "检查控制仓库结构与缺失项",
+      "entry": "skills/repo-health/SKILL.md"
+    },
+    {
+      "id": "git-sync",
+      "enabled": true,
+      "category": "sync",
+      "summary": "把 Git 控制仓库内容同步到本地目录",
+      "entry": "skills/git-sync/SKILL.md"
+    }
+  ],
+  "policies": {
+    "preferSharedSkills": true,
+    "skillOutputShouldBeActionable": true,
+    "skillsShouldAvoidSensitiveSecrets": true,
+    "skillsCanReferenceScripts": true
+  }
+}

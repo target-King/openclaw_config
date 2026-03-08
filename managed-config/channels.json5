@@ -1,0 +1,16 @@
+{
+  "meta": {
+    "configName": "channels",
+    "version": "0.2.0",
+    "description": "Reserved channels config for future integrations"
+  },
+  "channels": {
+    "enabled": false,
+    "providers": []
+  },
+  "notes": [
+    "该文件当前只作为预留入口",
+    "未来接 Telegram / Discord / WhatsApp / API 时再填写",
+    "不要把真实 token 直接写进 Git"
+  ]
+}

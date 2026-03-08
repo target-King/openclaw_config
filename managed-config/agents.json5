@@ -1,0 +1,465 @@
+{
+  "meta": {
+    "configName": "agents",
+    "version": "0.2.0",
+    "description": "OpenClaw 多 Agent 托管配置"
+  },
+  "defaults": {
+    "enabled": true,
+    "memoryRetrievalOrder": [
+      "l1",
+      "l2",
+      "l3"
+    ],
+    "behavior": {
+      "preferStructuredOutput": true,
+      "preferRepoConventions": true,
+      "avoidUnnecessaryLongContext": true,
+      "summarizeBeforeEscalation": true,
+      "writeStableFactsToL3": true
+    },
+    "inputPolicy": {
+      "detectTopicFirst": true,
+      "checkRepoContextFirst": true,
+      "allowFallbackToGeneral": true
+    },
+    "outputPolicy": {
+      "includeActionableSteps": true,
+      "includeAssumptionsWhenNeeded": true,
+      "avoidDumpingRawMemory": true,
+      "preferSummarizedMemory": true
+    },
+
+    // ─── 应用层 dialog 隔离策略（不是 OpenClaw runtime 原生键） ───
+    "appLayer": {
+      "dialogAware": true,
+      "requireDialogIdOnDispatch": true,
+      "memoryIsolation": {
+        "l1PerDialog": true,
+        "l2PerDialog": true,
+        "l3Global": true
+      },
+      "notes": [
+        "所有 agent 在接收 supervisor 分派时，上下文中必须包含 dialogId",
+        "agent 返回结果时必须携带 dialogId，确保路由回正确的对话框",
+        "此处不设 maxConcurrent：全局 agent 并发控制属于 OpenClaw runtime 范畴",
+        "应用层 subagent 并发策略见 openclaw.json5 的 appLayer.dialogConcurrency"
+      ]
+    }
+  },
+  "agents": [
+    {
+      "id": "supervisor",
+      "enabled": true,
+      "displayName": "Supervisor",
+      "role": "总控代理",
+      "summary": "负责识别任务类型、路由子代理、选择记忆层、生成汇总结果",
+      "priority": 100,
+      "isDefault": true,
+      "workspaceName": "workspace-supervisor",
+      "agentDirName": "supervisor",
+      "responsibilities": [
+        "识别当前任务属于哪一类",
+        "判断是否需要调用 coder / reviewer / ops",
+        "决定检索哪一层记忆",
+        "在长对话中触发摘要压缩",
+        "把稳定规则写入长期事实候选",
+        "对多代理结果做整合与输出"
+      ],
+      "routing": {
+        "canDelegateTo": [
+          "coder",
+          "reviewer",
+          "ops",
+          "project-analyst"
+        ],
+        "acceptsDirectUserTasks": true,
+        "requiresPreRouting": false
+      },
+      "memoryPolicy": {
+        "enabled": true,
+        "primaryLayers": [
+          "l1",
+          "l2",
+          "l3"
+        ],
+        "retrievalOrder": [
+          "l1",
+          "l2",
+          "l3"
+        ],
+        "readFocus": [
+          "当前会话目标",
+          "已有主题摘要",
+          "长期项目规范",
+          "稳定偏好与决策规则"
+        ],
+        "writePolicy": {
+          "canWriteTopicSummary": true,
+          "canWriteLongTermFacts": true,
+          "onlyWriteStableFactsToL3": true,
+          "avoidWritingNoise": true
+        },
+        "escalationRules": [
+          "当当前会话过长时，优先压缩为 L2 摘要",
+          "当发现稳定规则时，写入 L3 候选",
+          "当任务类型不明确时，先做 topic 路由"
+        ]
+      },
+      "promptFiles": {
+        "agents": "agents/supervisor/AGENTS.md",
+        "soul": "agents/supervisor/SOUL.md",
+        "user": "agents/supervisor/USER.md",
+        "tools": "agents/supervisor/TOOLS.md"
+      }
+    },
+    {
+      "id": "coder",
+      "enabled": true,
+      "displayName": "Coder",
+      "role": "代码实现代理",
+      "summary": "负责代码实现、文件修改、脚本生成、目录结构落地",
+      "priority": 80,
+      "isDefault": false,
+      "workspaceName": "workspace-coder",
+      "agentDirName": "coder",
+      "responsibilities": [
+        "实现代码与脚本",
+        "按仓库规范生成文件",
+        "补全配置文件与模板文件",
+        "在既有目录结构下工作",
+        "减少不必要的重构"
+      ],
+      "routing": {
+        "canDelegateTo": [],
+        "acceptsDirectUserTasks": false,
+        "preferredEntry": "via-supervisor"
+      },
+      "memoryPolicy": {
+        "enabled": true,
+        "primaryLayers": [
+          "l1",
+          "l2",
+          "l3"
+        ],
+        "retrievalOrder": [
+          "l1",
+          "l2",
+          "l3"
+        ],
+        "readFocus": [
+          "当前任务说明",
+          "项目目录规范",
+          "已有代码约束",
+          "历史实现摘要",
+          "长期命名规则"
+        ],
+        "writePolicy": {
+          "canWriteTopicSummary": true,
+          "canWriteLongTermFacts": false,
+          "writeBackImplementationNotes": true,
+          "avoidWritingTransientNoise": true
+        },
+        "escalationRules": [
+          "实现前先查项目规范",
+          "目录已存在时优先在原结构上增量修改",
+          "不直接把一次性草稿写入长期事实"
+        ]
+      },
+      "constraints": {
+        "preferIncrementalChange": true,
+        "avoidBreakingRepoShape": true,
+        "preserveExistingConventions": true
+      },
+      "promptFiles": {
+        "agents": "agents/coder/AGENTS.md",
+        "soul": "agents/coder/SOUL.md",
+        "user": "agents/coder/USER.md",
+        "tools": "agents/coder/TOOLS.md"
+      }
+    },
+    {
+      "id": "reviewer",
+      "enabled": true,
+      "displayName": "Reviewer",
+      "role": "审查代理",
+      "summary": "负责风险检查、逻辑校验、结构审阅、规范一致性检查",
+      "priority": 70,
+      "isDefault": false,
+      "workspaceName": "workspace-reviewer",
+      "agentDirName": "reviewer",
+      "responsibilities": [
+        "检查目录和配置是否一致",
+        "检查改动是否违反既有规范",
+        "检查逻辑风险与遗漏",
+        "检查是否重复引入旧问题",
+        "输出审查意见与修正建议"
+      ],
+      "routing": {
+        "canDelegateTo": [],
+        "acceptsDirectUserTasks": false,
+        "preferredEntry": "via-supervisor"
+      },
+      "memoryPolicy": {
+        "enabled": true,
+        "primaryLayers": [
+          "l1",
+          "l2",
+          "l3"
+        ],
+        "retrievalOrder": [
+          "l1",
+          "l2",
+          "l3"
+        ],
+        "readFocus": [
+          "当前改动背景",
+          "历史风险摘要",
+          "审查规则",
+          "长期规范事实"
+        ],
+        "writePolicy": {
+          "canWriteTopicSummary": true,
+          "canWriteLongTermFacts": false,
+          "writeBackRiskSummary": true,
+          "avoidWritingPersonalNoise": true
+        },
+        "escalationRules": [
+          "审查前先查过往风险记录",
+          "如果发现重复问题，优先标记为历史复发",
+          "若规则不明确，回退到长期规范事实"
+        ]
+      },
+      "constraints": {
+        "preferRiskEnumeration": true,
+        "preferConsistencyChecks": true,
+        "avoidOverEngineeringComments": true
+      },
+      "promptFiles": {
+        "agents": "agents/reviewer/AGENTS.md",
+        "soul": "agents/reviewer/SOUL.md",
+        "user": "agents/reviewer/USER.md",
+        "tools": "agents/reviewer/TOOLS.md"
+      }
+    },
+    {
+      "id": "ops",
+      "enabled": true,
+      "displayName": "Ops",
+      "role": "运维代理",
+      "summary": "负责部署、同步、日志分析、脚本执行规范与环境检查",
+      "priority": 75,
+      "isDefault": false,
+      "workspaceName": "workspace-ops",
+      "agentDirName": "ops",
+      "responsibilities": [
+        "维护同步脚本",
+        "检查目录映射",
+        "检查部署与运行环境",
+        "分析日志与启动问题",
+        "生成可执行运维脚本"
+      ],
+      "routing": {
+        "canDelegateTo": [],
+        "acceptsDirectUserTasks": false,
+        "preferredEntry": "via-supervisor"
+      },
+      "memoryPolicy": {
+        "enabled": true,
+        "primaryLayers": [
+          "l1",
+          "l2",
+          "l3"
+        ],
+        "retrievalOrder": [
+          "l1",
+          "l2",
+          "l3"
+        ],
+        "readFocus": [
+          "当前环境要求",
+          "路径规则",
+          "同步策略",
+          "历史部署摘要",
+          "常见运维错误与修复记录"
+        ],
+        "writePolicy": {
+          "canWriteTopicSummary": true,
+          "canWriteLongTermFacts": false,
+          "writeBackOpsNotes": true,
+          "avoidWritingSensitiveSecrets": true
+        },
+        "escalationRules": [
+          "先确认路径，再生成脚本",
+          "先确认是否为控制仓库，再处理同步逻辑",
+          "日志问题优先写入摘要，不写入长期事实"
+        ]
+      },
+      "constraints": {
+        "preferSafeOperations": true,
+        "avoidDangerousDefaults": true,
+        "preserveLocalState": true
+      },
+      "promptFiles": {
+        "agents": "agents/ops/AGENTS.md",
+        "soul": "agents/ops/SOUL.md",
+        "user": "agents/ops/USER.md",
+        "tools": "agents/ops/TOOLS.md"
+      }
+    },
+    {
+      "id": "project-analyst",
+      "enabled": true,
+      "displayName": "Project Analyst",
+      "role": "项目分析代理",
+      "summary": "负责项目讨论、可行性分析、方案评估、目标拆解、MVP 设计与推进路线规划",
+      "priority": 85,
+      "isDefault": false,
+      "workspaceName": "workspace-project-analyst",
+      "agentDirName": "project-analyst",
+      "responsibilities": [
+        "把模糊想法转化为结构化问题",
+        "进行项目可行性分析",
+        "拆解目标与阶段",
+        "识别自动化机会与技术约束",
+        "给出 MVP 方案设计",
+        "做风险评估与收益判断",
+        "给出推进路线图",
+        "在需要时向 supervisor 建议拉入垂直专家"
+      ],
+      "routing": {
+        "canDelegateTo": [],
+        "acceptsDirectUserTasks": false,
+        "preferredEntry": "via-supervisor"
+      },
+      "memoryPolicy": {
+        "enabled": true,
+        "primaryLayers": [
+          "l1",
+          "l2",
+          "l3"
+        ],
+        "retrievalOrder": [
+          "l1",
+          "l2",
+          "l3"
+        ],
+        "readFocus": [
+          "当前项目讨论上下文",
+          "历史项目分析摘要",
+          "可行性判断标准",
+          "用户偏好的评估方式",
+          "已验证的分析框架"
+        ],
+        "writePolicy": {
+          "canWriteTopicSummary": true,
+          "canWriteLongTermFacts": true,
+          "onlyWriteStableFactsToL3": true,
+          "writeBackAnalysisSummary": true,
+          "avoidWritingTransientNoise": true
+        },
+        "escalationRules": [
+          "项目级结论写入 L2，方法论级结论才考虑 L3",
+          "时效性信息（平台政策、API 能力）不进 L3",
+          "用户反复使用且确认有效的评估框架可写入 L3",
+          "一次性头脑风暴和未验证猜测不写入任何层"
+        ]
+      },
+      "constraints": {
+        "preferStructuredAnalysis": true,
+        "preferActionableAdvice": true,
+        "avoidVagueConclusions": true,
+        "avoidDirectImplementation": true,
+        "preferMVPFirst": true
+      },
+      "promptFiles": {
+        "agents": "agents/project-analyst/AGENTS.md",
+        "soul": "agents/project-analyst/SOUL.md",
+        "user": "agents/project-analyst/USER.md",
+        "tools": "agents/project-analyst/TOOLS.md"
+      }
+    }
+  ],
+  "routingRules": {
+    "enabled": true,
+    "byTopic": [
+      {
+        "topic": "openclaw-config",
+        "preferredAgent": "supervisor"
+      },
+      {
+        "topic": "agent-design",
+        "preferredAgent": "supervisor"
+      },
+      {
+        "topic": "skill-design",
+        "preferredAgent": "supervisor"
+      },
+      {
+        "topic": "three-layer-memory",
+        "preferredAgent": "supervisor"
+      },
+      {
+        "topic": "rag-system",
+        "preferredAgent": "supervisor"
+      },
+      {
+        "topic": "deployment-sync",
+        "preferredAgent": "ops"
+      },
+      {
+        "topic": "repo-construction",
+        "preferredAgent": "coder"
+      },
+      {
+        "topic": "review-check",
+        "preferredAgent": "reviewer"
+      },
+      {
+        "topic": "project-analysis",
+        "preferredAgent": "project-analyst"
+      }
+    ],
+    "byTaskType": [
+      {
+        "taskType": "implementation",
+        "preferredAgent": "coder"
+      },
+      {
+        "taskType": "review",
+        "preferredAgent": "reviewer"
+      },
+      {
+        "taskType": "ops",
+        "preferredAgent": "ops"
+      },
+      {
+        "taskType": "orchestration",
+        "preferredAgent": "supervisor"
+      },
+      {
+        "taskType": "analysis",
+        "preferredAgent": "project-analyst"
+      }
+    ],
+    "fallbackAgent": "supervisor"
+  },
+  "longTermFactCandidates": {
+    "enabled": true,
+    "allowedCategories": [
+      "project-convention",
+      "path-rule",
+      "agent-policy",
+      "skill-policy",
+      "memory-rule",
+      "naming-rule",
+      "analysis-framework"
+    ],
+    "deniedCategories": [
+      "one-time-noise",
+      "temporary-debug-output",
+      "session-only-guess",
+      "sensitive-secret"
+    ]
+  }
+}

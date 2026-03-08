@@ -1,0 +1,266 @@
+{
+  "meta": {
+    "projectName": "openclaw-home",
+    "configType": "managed-source",
+    "version": "0.2.0",
+    "owner": "local-repo",
+    "description": "Git managed source config for OpenClaw home"
+  },
+  "agents": {
+    "enabled": true,
+    "defaultAgent": "supervisor",
+    "list": [
+      {
+        "id": "supervisor",
+        "enabled": true,
+        "role": "总控 / 任务分流 / 记忆路由 / 汇总",
+        "workspaceName": "workspace-supervisor",
+        "agentDirName": "supervisor",
+        "isDefault": true
+      },
+      {
+        "id": "coder",
+        "enabled": true,
+        "role": "代码实现 / 文件修改 / 脚本生成",
+        "workspaceName": "workspace-coder",
+        "agentDirName": "coder",
+        "isDefault": false
+      },
+      {
+        "id": "reviewer",
+        "enabled": true,
+        "role": "审查 / 风险识别 / 改动校验",
+        "workspaceName": "workspace-reviewer",
+        "agentDirName": "reviewer",
+        "isDefault": false
+      },
+      {
+        "id": "ops",
+        "enabled": true,
+        "role": "部署 / 诊断 / 日志 / 运维脚本",
+        "workspaceName": "workspace-ops",
+        "agentDirName": "ops",
+        "isDefault": false
+      },
+      {
+        "id": "project-analyst",
+        "enabled": true,
+        "role": "项目讨论 / 可行性分析 / 方案评估 / 路线拆解",
+        "workspaceName": "workspace-project-analyst",
+        "agentDirName": "project-analyst",
+        "isDefault": false
+      }
+    ]
+  },
+  "skills": {
+    "enabled": true,
+    "sourceDir": "skills",
+    "watch": true,
+    "enabledSkills": [
+      "memory-retrieve",
+      "memory-summarize",
+      "topic-router",
+      "repo-health",
+      "git-sync"
+    ]
+  },
+  "memory": {
+    "enabled": true,
+    "mode": "three-layer",
+    "layers": {
+      "l1": {
+        "id": "current-session",
+        "enabled": true,
+        "purpose": "保存当前会话的近距离上下文",
+        "persistence": "session",
+        "retrievalPriority": 1
+      },
+      "l2": {
+        "id": "topic-summary",
+        "enabled": true,
+        "purpose": "按主题存放摘要记忆，减少上下文长度",
+        "persistence": "mid-term",
+        "retrievalPriority": 2
+      },
+      "l3": {
+        "id": "long-term-facts",
+        "enabled": true,
+        "purpose": "保存长期稳定规则、偏好、路径与项目事实",
+        "persistence": "long-term",
+        "retrievalPriority": 3
+      }
+    },
+    "retrievalOrder": [
+      "l1",
+      "l2",
+      "l3"
+    ],
+    "summarizeThreshold": {
+      "byTurns": 12,
+      "byApproxChars": 12000
+    },
+    "longTermWritePolicy": {
+      "storeStablePreferences": true,
+      "storeProjectConventions": true,
+      "storePathRules": true,
+      "storeOneTimeChatNoise": false,
+      "storeSensitiveSecrets": false
+    }
+  },
+  "topicRouting": {
+    "enabled": true,
+    "strategy": "rule-first",
+    "defaultTopic": "general",
+    "knownTopics": [
+      "openclaw-config",
+      "agent-design",
+      "skill-design",
+      "three-layer-memory",
+      "rag-system",
+      "deployment-sync",
+      "project-conventions",
+      "project-analysis",
+      "general"
+    ],
+    "fallbackToGeneral": true
+  },
+  "rag": {
+    "enabled": true,
+    "implementationStage": "skeleton",
+    "retrieval": {
+      "strategy": "topic-first-then-facts",
+      "topK": 5,
+      "allowKeywordSearch": true,
+      "allowTopicSearch": true,
+      "allowFactSearch": true,
+      "allowEmbeddingSearch": false
+    },
+    "storage": {
+      "conversationStore": "sqlite",
+      "summaryStore": "sqlite",
+      "factStore": "sqlite",
+      "vectorStore": "disabled"
+    }
+  },
+  "scripts": {
+    "enabled": true,
+    "memory": {
+      "initDb": "scripts/memory/init_db.py",
+      "ingestChat": "scripts/memory/ingest_chat.py",
+      "retrieveContext": "scripts/memory/retrieve_context.py",
+      "summarizeTopic": "scripts/memory/summarize_topic.py",
+      "compactMemory": "scripts/memory/compact_memory.py"
+    },
+    "system": {
+      "install": "scripts/install.ps1",
+      "sync": "scripts/sync.ps1",
+      "backup": "scripts/backup.ps1",
+      "doctor": "scripts/doctor.ps1"
+    }
+  },
+  "paths": {
+    "repoRoot": ".",
+    "managedConfigDir": "managed-config",
+    "agentsDir": "agents",
+    "skillsDir": "skills",
+    "scriptsDir": "scripts",
+    "templatesDir": "templates",
+    "memorySpecDir": "memory-spec",
+    "dataDir": "data"
+  },
+  "sync": {
+    "enabled": true,
+    "overwriteManagedFiles": true,
+    "skipPatterns": [
+      "sessions/**",
+      "credentials/**",
+      "auth/**",
+      ".env",
+      "data/*.db",
+      "data/*.sqlite",
+      "data/*.sqlite3",
+      "cache/**",
+      "logs/**"
+    ],
+    "notes": [
+      "Git 只管理规则、模板、脚本骨架",
+      "运行态目录不直接纳入版本控制",
+      "真实 OpenClaw 路径由同步脚本决定"
+    ]
+  },
+  "channels": {
+    "enabled": false,
+    "configSource": "managed-config/channels.json5",
+    "notes": "后续接入 Telegram / Discord / WhatsApp / API 时再启用"
+  },
+  "env": {
+    "useDotEnv": true,
+    "envExampleFile": ".env.example",
+    "storeRealSecretsInGit": false
+  },
+  "progressReport": {
+    "enabled": true,
+    "intervalMinutes": 2,
+    "appliesTo": ["supervisor"],
+    "requiredFields": [
+      "currentTask",
+      "completedSoFar",
+      "blockedOrWaiting",
+      "nextStep"
+    ],
+    "maxLines": 5,
+    "triggerConditions": [
+      "elapsed-time",
+      "waiting-for-subagent",
+      "multi-step-execution",
+      "blocked-or-error"
+    ],
+    "notes": "规则定义在 agents/supervisor/AGENTS.md 和 SOUL.md，此处仅为配置参数"
+  },
+
+  // ─── 以下为本仓库应用层自有配置（appLayer），不是 OpenClaw runtime 原生键 ───
+  // 真正的运行时并发控制（如多 session 并行、全局队列）依赖 OpenClaw runtime 自身配置，
+  // 此处仅声明我们应用层的 dialog 隔离策略、记忆隔离规则和进度汇报绑定。
+  "appLayer": {
+    "version": "0.1.0",
+    "description": "控制仓库自有的应用层配置，与 OpenClaw runtime config 分离",
+
+    "dialogIsolation": {
+      "enabled": true,
+      "dialogIdSource": "frontend",
+      "dialogIdFormat": "uuid-v4 或 {botId}-{timestamp}-{random4}",
+      "sessionMapping": "每个 dialogId 应对应一个独立的 OpenClaw session 实例",
+      "notes": [
+        "dialogId 由前端生成，通过 API body 或 WebSocket 连接参数传入",
+        "后端维护 dialogId <-> OpenClaw sessionId 的映射",
+        "不允许多个 dialog 共用同一个 OpenClaw session"
+      ]
+    },
+
+    "dialogConcurrency": {
+      "maxActiveDialogs": 8,
+      "perDialogQueueStrategy": "fifo",
+      "perDialogSubagentConcurrent": 2,
+      "globalSubagentConcurrent": 6,
+      "notes": [
+        "这里只控制应用层 supervisor 分派 subagent 的并发度",
+        "真正的跨 session 并行能力取决于 OpenClaw runtime 的队列和 session 并发配置",
+        "maxActiveDialogs 是应用层软限制，用于资源保护",
+        "globalSubagentConcurrent 防止全局 LLM 调用过多导致 rate limit"
+      ]
+    },
+
+    "memoryIsolation": {
+      "l1BindDialogId": true,
+      "l2BindDialogId": true,
+      "l3BindDialogId": false,
+      "notes": "L1/L2 按 dialogId 隔离，L3 全局共享"
+    },
+
+    "progressReportBinding": {
+      "bindToDialog": true,
+      "broadcastToAll": false,
+      "notes": "进度汇报只路由到发起任务的对话框，不广播"
+    }
+  }
+}
